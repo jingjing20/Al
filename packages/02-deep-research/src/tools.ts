@@ -1,46 +1,50 @@
 import { z } from 'zod';
 import { tavily } from '@tavily/core';
+import OpenAI from 'openai';
 
-// 初始化 Tavily 客户端
-// Tavily 是专门为 AI Agent 设计的搜索 API，返回的是干净的文本而非原始 HTML
+// ============================================
+// 初始化客户端
+// ============================================
+
+// Tavily 客户端：用于搜索和网页内容提取
 const tavilyClient = tavily({ apiKey: process.env.TAVILY_KEY });
+
+// OpenAI 客户端：用于内容总结
+const openai = new OpenAI({
+	apiKey: process.env.OPENAI_API_KEY,
+	baseURL: process.env.OPENAI_BASE_URL,
+});
 
 // ============================================
 // Tool 1: 搜索工具
 // ============================================
 
-// Zod Schema 定义（用于类型校验和 Prompt 生成）
 export const SearchToolSchema = z.object({
 	query: z.string().describe("The search query to send to Google")
 });
 
-// 搜索结果的类型定义
 export type SearchResult = {
 	url: string;
 	title: string;
-	snippet: string;  // 内容摘要，已截断以节省 Token
+	snippet: string;
 };
 
 /**
  * 执行真实的网络搜索
- *
- * 使用 Tavily API 进行搜索，返回格式化的结果列表
- * 注意：snippet 被截断到 300 字符，避免 Context Window 爆炸
  */
 export async function searchGoogle(query: string): Promise<SearchResult[]> {
 	console.log(`🔎 [Tavily] Searching for: "${query}"`);
 
 	try {
 		const response = await tavilyClient.search(query, {
-			maxResults: 5,        // 最多返回 5 条结果
-			searchDepth: "basic", // basic 更快，advanced 更全面
+			maxResults: 5,
+			searchDepth: "basic",
 		});
 
-		// 转换为我们定义的格式
 		return response.results.map(r => ({
 			url: r.url,
 			title: r.title,
-			snippet: r.content.slice(0, 300) // 截断以节省 Token
+			snippet: r.content.slice(0, 300)
 		}));
 	} catch (e: any) {
 		console.error("Tavily Error:", e.message);
@@ -58,14 +62,6 @@ export const VisitToolSchema = z.object({
 
 /**
  * 访问网页并提取内容
- *
- * 使用 Tavily Extract API 获取网页的纯文本内容
- * 相比 Puppeteer 等爬虫方案，Tavily 的优势是：
- * 1. 无需处理 JavaScript 渲染
- * 2. 返回的是已清洗的纯文本
- * 3. 自动跳过广告和导航栏
- *
- * 注意：内容被截断到 2000 字符，防止单次调用消耗过多 Token
  */
 export async function visitWebpage(url: string): Promise<string> {
 	console.log(`🌐 [Tavily Extract] Visiting: ${url}`);
@@ -73,12 +69,55 @@ export async function visitWebpage(url: string): Promise<string> {
 	try {
 		const response = await tavilyClient.extract([url]);
 		if (response.results && response.results.length > 0) {
-			// Tavily extract 返回干净的纯文本
-			return response.results[0].rawContent.slice(0, 2000);
+			return response.results[0].rawContent.slice(0, 4000); // 取更多内容用于总结
 		}
 		return "No content extracted.";
 	} catch (e: any) {
 		console.error("Tavily Extract Error:", e.message);
 		return `Failed to extract content from ${url}`;
+	}
+}
+
+// ============================================
+// Tool 3: 内容总结工具（新增）
+// ============================================
+
+/**
+ * 对长文本进行 LLM 总结
+ *
+ * 目的：把 2000-4000 字的网页内容压缩成 200-300 字的摘要
+ * 这样可以显著降低后续 Token 消耗，并让 Context 更聚焦
+ *
+ * @param content 原始内容
+ * @param goal 研究目标，用于指导总结方向
+ * @returns 压缩后的摘要
+ */
+export async function summarizeContent(content: string, goal: string): Promise<string> {
+	// 如果内容已经很短，不需要总结
+	if (content.length < 500) {
+		return content;
+	}
+
+	console.log(`📝 [Summarizing] ${content.length} chars -> ~300 chars`);
+
+	try {
+		const completion = await openai.chat.completions.create({
+			model: process.env.OPENAI_MODEL || 'gpt-4o-mini', // 用便宜的模型做总结
+			messages: [
+				{
+					role: "system",
+					content: `You are a research assistant. Summarize the following content in 2-3 paragraphs, focusing on information relevant to: "${goal}". Be concise but keep key facts and numbers.`
+				},
+				{ role: "user", content: content }
+			],
+			max_tokens: 500,
+			temperature: 0.3,
+		});
+
+		return completion.choices[0].message.content || content;
+	} catch (e: any) {
+		console.error("Summarization Error:", e.message);
+		// 如果总结失败，返回截断的原文
+		return content.slice(0, 500) + "... (truncated)";
 	}
 }

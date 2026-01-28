@@ -1,22 +1,50 @@
 import 'dotenv/config';
 import OpenAI from 'openai';
 import { INITIAL_STATE, ResearchState } from './types';
-import { searchGoogle, visitWebpage, SearchResult } from './tools';
+import { searchGoogle, visitWebpage, summarizeContent, SearchResult } from './tools';
+import { saveState, loadState, clearState, saveResult } from './state';
 import { ChatCompletionTool } from 'openai/resources/chat/completions';
 
 // ============================================
-// 初始化 OpenAI 客户端
+// 初始化
 // ============================================
+
 const client = new OpenAI({
 	apiKey: process.env.OPENAI_API_KEY,
 	baseURL: process.env.OPENAI_BASE_URL,
 });
 
 // ============================================
+// 简易并发控制器（替代 p-limit，避免 ESM 兼容问题）
+// ============================================
+async function runWithConcurrencyLimit<T>(
+	tasks: (() => Promise<T>)[],
+	limit: number
+): Promise<T[]> {
+	const results: T[] = [];
+	const executing: Promise<void>[] = [];
+
+	for (const task of tasks) {
+		const p = task().then(result => {
+			results.push(result);
+		});
+		executing.push(p as Promise<void>);
+
+		if (executing.length >= limit) {
+			await Promise.race(executing);
+			// 移除已完成的 promise
+			executing.splice(0, executing.findIndex(e => e === p) + 1);
+		}
+	}
+
+	await Promise.all(executing);
+	return results;
+}
+
+// ============================================
 // 工具定义（暴露给 LLM 的 Function Calling Schema）
 // ============================================
-// 这是 Agent 的核心：我们不在代码里写死流程，
-// 而是把工具暴露给 LLM，让它自己决定调用什么
+
 const tools: ChatCompletionTool[] = [
 	{
 		type: "function",
@@ -35,14 +63,18 @@ const tools: ChatCompletionTool[] = [
 	{
 		type: "function",
 		function: {
-			name: "visit",
-			description: "Visit a URL and read its full content.",
+			name: "visit_multiple",
+			description: "Visit multiple URLs and read their content. Use this after search to gather detailed information.",
 			parameters: {
 				type: "object",
 				properties: {
-					url: { type: "string", description: "The URL to visit" }
+					urls: {
+						type: "array",
+						items: { type: "string" },
+						description: "List of URLs to visit (max 5)"
+					}
 				},
-				required: ["url"]
+				required: ["urls"]
 			}
 		}
 	}
@@ -51,31 +83,20 @@ const tools: ChatCompletionTool[] = [
 // ============================================
 // 核心函数：执行深度研究
 // ============================================
-/**
- * ReAct Loop 的主函数
- *
- * 流程：
- * 1. 初始化状态
- * 2. 进入循环：State -> Prompt -> LLM -> Tool Call -> Update State
- * 3. 当 LLM 认为信息足够时，输出最终答案
- * 4. 如果达到最大迭代次数，强制总结已有信息
- */
+
 async function runResearch(goal: string) {
-	// 1. 初始化状态
-	// 状态对象用于持久化进度，方便崩溃重启（虽然目前没实现持久化到磁盘）
-	let state: ResearchState = { ...INITIAL_STATE, goal };
+	// 1. 尝试从磁盘加载状态（断点续跑）
+	let state: ResearchState = loadState(goal) || { ...INITIAL_STATE, goal };
 
 	console.log(`\n🎯 Goal: "${goal}"`);
 	console.log("-----------------------------------");
 
-	// 2. 核心循环（ReAct Pattern）
+	// 2. 核心循环
 	while (state.iteration < state.max_iterations) {
 		state.iteration++;
 		console.log(`\n🔄 [Step ${state.iteration}/${state.max_iterations}] Thinking...`);
 
-		// 3. 构造上下文（Prompt Engineering 的关键）
-		// 我们把状态压缩成自然语言喂给 LLM
-		// 特别注意：明确告诉它哪些 query 和 URL 已经用过，防止重复
+		// 3. 构造上下文
 		const context = `
 Current Goal: ${state.goal}
 
@@ -85,16 +106,17 @@ ${state.searched_queries.length > 0 ? state.searched_queries.map(q => `- "${q}"`
 Already Visited URLs (DO NOT visit these again):
 ${state.visited_urls.length > 0 ? state.visited_urls.join("\n") : "(none yet)"}
 
-Gathered Information:
-${state.gathered_info.map((info, i) => `[Note ${i + 1}]: ${info.slice(0, 500)}...`).join("\n\n")}
+Gathered Information (Summarized):
+${state.gathered_info.map((info, i) => `[Note ${i + 1}]: ${info}`).join("\n\n")}
 
 Instructions:
-1. If you need more info, use 'search' with a NEW query or 'visit' a NEW URL.
-2. If you have enough info to answer the goal comprehensively, respond with your final answer (do not call tools).
-3. Avoid repeating searches or visits.
+1. If you need more info, use 'search' with a NEW query.
+2. After searching, use 'visit_multiple' with the promising URLs to get full content.
+3. If you have enough info to answer the goal comprehensively, respond with your final answer (do not call tools).
+4. Avoid repeating searches or visits.
 `;
 
-		// 4. 调用 LLM（带 Function Calling）
+		// 4. 调用 LLM
 		const completion = await client.chat.completions.create({
 			model: process.env.OPENAI_MODEL || 'gpt-4o',
 			messages: [
@@ -105,7 +127,7 @@ Instructions:
 				{ role: "user", content: context }
 			],
 			tools: tools,
-			tool_choice: "auto", // 让 LLM 自己决定是否调用工具
+			tool_choice: "auto",
 		});
 
 		const message = completion.choices[0].message;
@@ -116,60 +138,77 @@ Instructions:
 			const funcName = toolCall.function.name;
 			const args = JSON.parse(toolCall.function.arguments);
 
-			console.log(`🛠️  Action: ${funcName}(${JSON.stringify(args)})`);
-
-			let result = "";
+			console.log(`🛠️  Action: ${funcName}`);
 
 			if (funcName === 'search') {
 				const query = args.query;
-				// 去重检查：如果这个 query 已经搜过，跳过
 				if (state.searched_queries.includes(query)) {
-					result = `[SKIP] Already searched for "${query}". Try a different query.`;
+					state.gathered_info.push(`[SKIP] Already searched for "${query}".`);
 					console.log(`⚠️  Skipped duplicate search`);
 				} else {
-					// 记录已搜索的 query
 					state.searched_queries.push(query);
 					const searchResults = await searchGoogle(query);
 					if (searchResults.length === 0) {
-						result = `No results found for "${query}".`;
+						state.gathered_info.push(`No results found for "${query}".`);
 					} else {
-						// 格式化搜索结果
-						result = `Search Results for "${query}":\n` +
+						const result = `Search Results for "${query}":\n` +
 							searchResults.map((r: SearchResult) => `- ${r.title}: ${r.url}\n  ${r.snippet}`).join("\n\n");
+						state.gathered_info.push(result);
 					}
 				}
-			} else if (funcName === 'visit') {
-				const url = args.url;
-				// 去重检查：如果这个 URL 已经访问过，跳过
-				if (state.visited_urls.includes(url)) {
-					result = `[SKIP] Already visited ${url}. Try a different URL.`;
-					console.log(`⚠️  Skipped duplicate visit`);
+			} else if (funcName === 'visit_multiple') {
+				let urls: string[] = args.urls || [];
+				// 限制最多 5 个 URL
+				urls = urls.slice(0, 5);
+				// 过滤掉已访问的 URL
+				const newUrls = urls.filter(url => !state.visited_urls.includes(url));
+
+				if (newUrls.length === 0) {
+					state.gathered_info.push("[SKIP] All URLs have been visited already.");
+					console.log(`⚠️  All URLs already visited`);
 				} else {
-					// 记录已访问的 URL
-					state.visited_urls.push(url);
-					const content = await visitWebpage(url);
-					result = `Content of ${url}:\n${content}`;
+					console.log(`🌐 Visiting ${newUrls.length} URLs in parallel (max 3 concurrent)...`);
+
+					// 构造任务列表
+					const tasks = newUrls.map(url => async () => {
+						state.visited_urls.push(url);
+						const content = await visitWebpage(url);
+						// 对每个页面做总结，压缩 Token
+						const summary = await summarizeContent(content, state.goal);
+						return { url, summary };
+					});
+
+					// 并发访问（带限流）
+					const results = await runWithConcurrencyLimit(tasks, 3);
+
+					// 把结果存入 gathered_info
+					for (const { url, summary } of results) {
+						state.gathered_info.push(`Content of ${url}:\n${summary}`);
+						console.log(`📝 Summarized: ${url}`);
+					}
 				}
 			}
 
-			// 6. 更新状态：把结果存入 gathered_info
-			state.gathered_info.push(result);
-			console.log(`📝 Note Added (${result.length} chars)`);
-
-			// 循环继续...
+			// 6. 保存状态到磁盘（每次操作后都保存，方便断点续跑）
+			saveState(state);
 
 		} else {
-			// 7. LLM 没有调用工具 -> 说明它认为信息足够了，这是最终答案
-			const finalAnswer = message.content;
+			// 7. 最终答案
+			const finalAnswer = message.content || '';
 			console.log("\n✅ Mission Complete!");
 			console.log("-----------------------------------");
 			console.log(finalAnswer);
+
+			// 保存结果到 md 文件
+			saveResult(state.goal, finalAnswer, state);
+			// 清除状态文件（任务完成）
+			clearState();
 			return finalAnswer;
 		}
 	}
 
-	// 8. 兜底逻辑：如果达到最大迭代次数还没给出答案，强制总结
-	console.warn("\n🛑 Max iterations reached. Generating summary from gathered info...");
+	// 8. 兜底逻辑
+	console.warn("\n🛑 Max iterations reached. Generating summary...");
 	const fallback = await client.chat.completions.create({
 		model: process.env.OPENAI_MODEL || 'gpt-4o',
 		messages: [
@@ -177,14 +216,21 @@ Instructions:
 			{ role: "user", content: `Goal: ${state.goal}\n\nNotes:\n${state.gathered_info.join("\n\n")}` }
 		],
 	});
-	console.log(fallback.choices[0].message.content);
-	return fallback.choices[0].message.content;
+
+	const fallbackAnswer = fallback.choices[0].message.content || '';
+	// 保存结果到 md 文件
+	saveResult(state.goal, fallbackAnswer, state);
+	// 清除状态文件
+	clearState();
+
+	console.log(fallbackAnswer);
+	return fallbackAnswer;
 }
 
 // ============================================
-// 入口：支持命令行参数
+// 入口
 // ============================================
-// 用法: npx ts-node src/index.ts "你的研究问题"
+
 if (require.main === module) {
 	const topic = process.argv[2] || "What are the key React.js trends in 2024?";
 	runResearch(topic);
