@@ -1,0 +1,19 @@
+node_modules
+dist
+dist-ssr
+widget-dist
+*.local
+.env
+
+# TypeScript
+*.tsbuildinfo
+
+# Editor directories and files
+.idea
+.history
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

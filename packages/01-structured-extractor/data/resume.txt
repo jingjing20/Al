@@ -1,0 +1,42 @@
+John Doe - Senior Full Stack Engineer
+Email: john.doe@example.com | Phone: +1-555-0102
+Location: San Francisco, CA
+
+SUMMARY
+Result-oriented software engineer with 8+ years of experience in building scalable web applications. Specialized in React ecosystem and Node.js backend services. Passionate about AI engineering and performance optimization.
+
+EXPERIENCE
+
+Senior Software Engineer | TechFlow Inc.
+Jan 2021 – Present
+- Led the migration of legacy monolith to microservices using Node.js and gRPC, improving deployment/build times by 40%.
+- Designed and implemented a real-time collaboration feature using WebSocket and Redis.
+- Mentored 5 junior developers and established code review standards.
+- Tech Stack: TypeScript, Node.js, Kubernetes, Redis, PostgreSQL.
+
+Frontend Developer | Creative Solutions
+Mar 2018 – Dec 2020
+- Developed responsive UI components using React and Redux.
+- Optimized frontend performance, achieving a 98/100 Lighthouse score.
+- Collaborated with UX designers to implement pixel-perfect designs.
+- Tech Stack: React, Redux, SCSS, Webpack.
+
+Junior Developer | StartUp Hub
+Jun 2016 – Feb 2018
+- Built RESTful APIs for mobile applications using Express.js.
+- Integrated third-party payment gateways (Stripe, PayPal).
+
+SKILLS
+- Languages: JavaScript (ES6+), TypeScript, Python, Golang
+- Frontend: React, Next.js, Vue.js, TailwindCSS
+- Backend: Node.js, NestJS, Express, GraphQL
+- Database: PostgreSQL, MongoDB, Redis
+- DevOps: Docker, AWS, CI/CD (GitHub Actions)
+
+EDUCATION
+B.Sc. in Computer Science | University of California, Berkeley
+2012 – 2016
+
+CERTIFICATIONS
+- AWS Certified Solutions Architect – Associate
+- Certified Kubernetes Administrator (CKA)

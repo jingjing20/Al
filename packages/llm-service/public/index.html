@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Chat</title>
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      color: #e0e0e0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .stats {
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 8px;
+    }
+
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 0;
+    }
+
+    .message {
+      margin-bottom: 16px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .message.user {
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      flex-shrink: 0;
+    }
+
+    .message.user .avatar {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .message.assistant .avatar {
+      background: linear-gradient(135deg, #11998e, #38ef7d);
+    }
+
+    .bubble {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      line-height: 1.5;
+      font-size: 0.9375rem;
+    }
+
+    .message.user .bubble {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.assistant .bubble {
+      background: rgba(255,255,255,0.08);
+      border-bottom-left-radius: 4px;
+    }
+
+    .meta {
+      font-size: 0.7rem;
+      color: #666;
+      margin-top: 4px;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 12px;
+      padding: 16px 0;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    #input {
+      flex: 1;
+      padding: 14px 18px;
+      border: none;
+      border-radius: 24px;
+      background: rgba(255,255,255,0.08);
+      color: #e0e0e0;
+      font-size: 0.9375rem;
+      outline: none;
+      transition: background 0.2s;
+    }
+
+    #input:focus {
+      background: rgba(255,255,255,0.12);
+    }
+
+    #input::placeholder {
+      color: #666;
+    }
+
+    button {
+      padding: 14px 28px;
+      border: none;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.02);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Markdown Styles */
+    .bubble p { margin-bottom: 8px; }
+    .bubble p:last-child { margin-bottom: 0; }
+    .bubble pre {
+      background: rgba(0,0,0,0.3);
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 8px 0;
+    }
+    .bubble code {
+      font-family: Consolas, Monaco, 'Andale Mono', monospace;
+      font-size: 0.9em;
+      background: rgba(0,0,0,0.2);
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+    .bubble pre code {
+      background: transparent;
+      padding: 0;
+      color: #e0e0e0;
+    }
+    .bubble ul, .bubble ol { margin-left: 20px; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>LLM Service Chat</h1>
+      <div class="stats" id="stats">Tokens: 0 | Cost: $0.000000</div>
+    </header>
+
+    <div class="chat-container" id="chat"></div>
+
+    <div class="input-area">
+      <input type="text" id="input" placeholder="Type a message..." autocomplete="off">
+      <button id="send">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const chatEl = document.getElementById('chat')
+    const inputEl = document.getElementById('input')
+    const sendBtn = document.getElementById('send')
+    const statsEl = document.getElementById('stats')
+
+    // Initialize markdown-it
+    const md = window.markdownit()
+
+    function renderMarkdown(content) {
+        return md.render(content)
+    }
+
+    // Add model input dynamically
+    const headerEl = document.querySelector('header')
+    const modelInputWrapper = document.createElement('div')
+    modelInputWrapper.style.marginTop = '10px'
+    modelInputWrapper.innerHTML = `<input type="text" id="model-input" placeholder="Model Name" style="padding: 6px 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white; text-align: center;">`
+    headerEl.appendChild(modelInputWrapper)
+    const modelInput = document.getElementById('model-input')
+
+    const messages = []
+
+    // Fetch config
+    fetch('/v1/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.defaultModel) {
+            modelInput.value = data.defaultModel
+        }
+      })
+      .catch(() => {
+        modelInput.value = 'mimo-v2-flash'
+      })
+
+    function addMessage(role, content, meta = null, isError = false) {
+      if (!isError && content) {
+          if (role === 'user') messages.push({ role, content })
+      }
+
+      const div = document.createElement('div')
+      div.className = `message ${role}`
+
+      const avatar = document.createElement('div')
+      avatar.className = 'avatar'
+      avatar.textContent = role === 'user' ? 'U' : 'AI'
+
+      const bubble = document.createElement('div')
+      bubble.className = 'bubble'
+
+      // Use markdown rendering for content
+      if (role === 'assistant' && !isError) {
+          bubble.innerHTML = renderMarkdown(content)
+      } else {
+          bubble.textContent = content
+      }
+
+      div.appendChild(avatar)
+      div.appendChild(bubble)
+
+      if (meta) {
+        const metaEl = document.createElement('div')
+        metaEl.className = 'meta'
+        metaEl.textContent = `${meta.latencyMs}ms | ${meta.totalTokens} tokens | $${meta.totalCost.toFixed(6)}`
+        bubble.appendChild(metaEl)
+      }
+
+      chatEl.appendChild(div)
+      chatEl.scrollTop = chatEl.scrollHeight
+
+      return bubble
+    }
+
+    async function send() {
+      const content = inputEl.value.trim()
+      const model = modelInput.value.trim() || 'gpt-4o-mini'
+
+      if (!content) return
+
+      inputEl.value = ''
+      addMessage('user', content)
+
+      sendBtn.disabled = true
+      sendBtn.innerHTML = '<span class="loading"></span>'
+
+      // Prepare UI for streaming assistant response
+      const bubbleEl = addMessage('assistant', '')
+      let fullContent = ''
+
+      try {
+        const res = await fetch('/v1/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: model,
+            stream: true,
+            // Filter messages to strictly valid history prevents sending previous errors
+            messages: messages.filter(m => !m.isError).map(m => ({ role: m.role, content: m.content })),
+          }),
+        })
+
+        if (!res.ok) {
+           const data = await res.json()
+           throw new Error(data.error || 'Request failed')
+        }
+
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+
+        while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = decoder.decode(value)
+            const lines = chunk.split('\n')
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.slice(6)
+                    if (dataStr === '[DONE]') continue
+                    try {
+                        const data = JSON.parse(dataStr)
+                        if (data.error) throw new Error(data.error)
+
+                        // Append content
+                        if (data.content) {
+                            fullContent += data.content
+                            // Re-render markdown on every update
+                            bubbleEl.innerHTML = renderMarkdown(fullContent)
+                            chatEl.scrollTop = chatEl.scrollHeight
+                        }
+
+                        // Update stats provided at end
+                        if (data.cost) {
+                            updateStats()
+                            const metaEl = bubbleEl.querySelector('.meta') || document.createElement('div')
+                            metaEl.className = 'meta'
+                            metaEl.textContent = `${data.usage.totalTokens} tokens | $${data.cost.totalCost.toFixed(6)}`
+                            if (!bubbleEl.querySelector('.meta')) bubbleEl.appendChild(metaEl)
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+
+        // Update local history with full response
+        messages.push({ role: 'assistant', content: fullContent })
+
+      } catch (err) {
+        if (!fullContent) {
+             bubbleEl.textContent = `Error: ${err.message}`
+        } else {
+             addMessage('assistant', `Error: ${err.message}`, null, true)
+        }
+      } finally {
+        sendBtn.disabled = false
+        sendBtn.textContent = 'Send'
+      }
+    }
+
+    async function updateStats() {
+      try {
+        const res = await fetch('/v1/stats')
+        const data = await res.json()
+        statsEl.textContent = `Tokens: ${data.totalTokens} | Cost: $${data.totalCost.toFixed(6)}`
+      } catch (e) {}
+    }
+
+    sendBtn.addEventListener('click', send)
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        send()
+      }
+    })
+
+    updateStats()
+  </script>
+</body>
+</html>
