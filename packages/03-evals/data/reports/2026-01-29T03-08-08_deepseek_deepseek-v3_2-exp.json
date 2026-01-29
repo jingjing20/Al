@@ -1,0 +1,121 @@
+{
+  "total_cases": 10,
+  "passed_cases": 8,
+  "failed_cases": 2,
+  "pass_rate": 0.8,
+  "average_score": 3.9,
+  "average_latency_ms": 2044.7,
+  "results": [
+    {
+      "case_id": "hard-inference-01",
+      "input": "After graduating from MIT in 2015, I joined Facebook. Then in 2018 I moved to Stripe, and last year I started my own company. My name is Alex Rivera.",
+      "output": "{\n  \"name\": \"Alex Rivera\",\n  \"title\": null,\n  \"company\": null,\n  \"years\": null\n}",
+      "score": 1,
+      "reason": "The output is completely incorrect; it extracted the name but failed to infer any other required information, returning null for all other fields.",
+      "latency_ms": 1766,
+      "passed": false
+    },
+    {
+      "case_id": "hard-inference-02",
+      "input": "I've been in the industry since the iPhone was first released. Currently leading infrastructure at Netflix. - David Kim",
+      "output": "{\n  \"name\": \"David Kim\",\n  \"title\": \"leading infrastructure\",\n  \"company\": \"Netflix\",\n  \"years\": 17\n}",
+      "score": 5,
+      "reason": "All expected key points are accurately captured: name is 'David Kim', company is 'Netflix', title relates to 'infrastructure' and 'lead', and years (17) correctly falls within the 17-18 range based on the iPhone's 2007 release.",
+      "latency_ms": 1801,
+      "passed": true
+    },
+    {
+      "case_id": "hard-contradiction-01",
+      "input": "Hi, I'm Jennifer. I work at Google. Actually no wait, I left Google last month. I'm now at Anthropic as a Research Scientist. Been doing ML for 4 years.",
+      "output": "{\n  \"name\": \"Jennifer\",\n  \"title\": \"Research Scientist\",\n  \"company\": \"Anthropic\",\n  \"years\": 4\n}",
+      "score": 5,
+      "reason": "The output accurately captures all four expected key points: name, corrected company, title, and years of experience, and is well-structured.",
+      "latency_ms": 2050,
+      "passed": true
+    },
+    {
+      "case_id": "hard-contradiction-02",
+      "input": "Name's Tom. 10 years experience... well actually if you count my internships it's more like 12. Senior DevOps at AWS, though my official title is 'Cloud Infrastructure Engineer'.",
+      "output": "{\n  \"name\": \"Tom\",\n  \"title\": \"Senior DevOps / Cloud Infrastructure Engineer\",\n  \"company\": \"AWS\",\n  \"years\": 10\n}",
+      "score": 4,
+      "reason": "Extracted name, company, and years correctly, but the title includes the casual 'Senior DevOps' in addition to the required official title.",
+      "latency_ms": 1697,
+      "passed": true
+    },
+    {
+      "case_id": "hard-noisy-01",
+      "input": "URGENT: Meeting at 3pm! BTW my colleague Sarah (the PM) wanted me to forward her resume: 'Maria Santos, Staff Engineer @ Uber, 7 yrs exp'. Can you review?",
+      "output": "{\n  \"name\": \"Maria Santos\",\n  \"title\": \"Staff Engineer\",\n  \"company\": \"Uber\",\n  \"years\": 7\n}",
+      "score": 5,
+      "reason": "The output perfectly extracts all required information (name, title, company, years) accurately and matches the expected structure.",
+      "latency_ms": 2283,
+      "passed": true
+    },
+    {
+      "case_id": "hard-noisy-02",
+      "input": "From: careers@company.com\nSubject: New candidate\n\nPlease review: Kevin O'Brien, iOS Developer, Apple Inc., Started March 2020.\n\n---\nSent from my iPhone",
+      "output": "{\n  \"name\": \"Kevin O'Brien\",\n  \"title\": \"iOS Developer\",\n  \"company\": \"Apple Inc.\",\n  \"years\": 4\n}",
+      "score": 4,
+      "reason": "Extracted name, title, and years correctly, but the company field includes 'Inc.' where only 'Apple' was expected.",
+      "latency_ms": 1717,
+      "passed": true
+    },
+    {
+      "case_id": "hard-implicit-01",
+      "input": "Just got promoted! After being a junior for 2 years and mid-level for 3 more, I'm finally a senior engineer at Spotify. - Chris",
+      "output": "{\n  \"name\": \"Chris\",\n  \"title\": \"senior engineer\",\n  \"company\": \"Spotify\",\n  \"years\": 5\n}",
+      "score": 5,
+      "reason": "All four key points are accurately captured: name is 'Chris', title is 'senior engineer' (case-insensitive match), company is 'Spotify', and total years are correctly calculated as 5.",
+      "latency_ms": 1879,
+      "passed": true
+    },
+    {
+      "case_id": "hard-implicit-02",
+      "input": "LinkedIn: Raj Patel | Currently between jobs | Last role: VP of Engineering at Coinbase (2019-2023)",
+      "output": "{\n  \"name\": \"Raj Patel\",\n  \"title\": \"VP of Engineering\",\n  \"company\": \"Coinbase\",\n  \"years\": 4\n}",
+      "score": 2,
+      "reason": "The output correctly identifies the name and years, but it incorrectly sets the company to 'Coinbase' instead of null/Unemployed, and the title should be optional given the user is currently between jobs.",
+      "latency_ms": 2048,
+      "passed": false
+    },
+    {
+      "case_id": "hard-math-01",
+      "input": "I'm Yuki. Graduated 2012, took 2 years off for travel, then worked at LINE for 3 years, Mercari for 4 years, and now at SmartNews.",
+      "output": "{\n  \"name\": \"Yuki\",\n  \"title\": null,\n  \"company\": \"SmartNews\",\n  \"years\": 9\n}",
+      "score": 3,
+      "reason": "Extracted name and current company correctly, but the years of experience (9) is incorrect; it should be 7 (3+4, excluding travel gap).",
+      "latency_ms": 3075,
+      "passed": true
+    },
+    {
+      "case_id": "hard-math-02",
+      "input": "Resume of Dr. Ahmed Hassan: PhD completed 2018 (4 years), Postdoc at Stanford (2 years), now Assistant Professor at Berkeley since 2020.",
+      "output": "{\n  \"name\": \"Ahmed Hassan\",\n  \"title\": \"Assistant Professor\",\n  \"company\": \"Berkeley\",\n  \"years\": 6\n}",
+      "score": 5,
+      "reason": "All expected key points are accurately covered: name, title, company, and years of professional experience (postdoc + professor) are correctly extracted and structured.",
+      "latency_ms": 2131,
+      "passed": true
+    }
+  ],
+  "worst_cases": [
+    {
+      "case_id": "hard-inference-01",
+      "input": "After graduating from MIT in 2015, I joined Facebook. Then in 2018 I moved to Stripe, and last year I started my own company. My name is Alex Rivera.",
+      "output": "{\n  \"name\": \"Alex Rivera\",\n  \"title\": null,\n  \"company\": null,\n  \"years\": null\n}",
+      "score": 1,
+      "reason": "The output is completely incorrect; it extracted the name but failed to infer any other required information, returning null for all other fields.",
+      "latency_ms": 1766,
+      "passed": false
+    },
+    {
+      "case_id": "hard-implicit-02",
+      "input": "LinkedIn: Raj Patel | Currently between jobs | Last role: VP of Engineering at Coinbase (2019-2023)",
+      "output": "{\n  \"name\": \"Raj Patel\",\n  \"title\": \"VP of Engineering\",\n  \"company\": \"Coinbase\",\n  \"years\": 4\n}",
+      "score": 2,
+      "reason": "The output correctly identifies the name and years, but it incorrectly sets the company to 'Coinbase' instead of null/Unemployed, and the title should be optional given the user is currently between jobs.",
+      "latency_ms": 2048,
+      "passed": false
+    }
+  ],
+  "run_at": "2026-01-29T03:08:08.620Z"
+}

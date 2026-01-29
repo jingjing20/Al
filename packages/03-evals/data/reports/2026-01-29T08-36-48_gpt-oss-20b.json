@@ -1,0 +1,193 @@
+{
+  "total_cases": 10,
+  "passed_cases": 0,
+  "failed_cases": 10,
+  "pass_rate": 0,
+  "average_score": 1,
+  "average_latency_ms": 4374.1,
+  "results": [
+    {
+      "case_id": "hard-inference-01",
+      "input": "After graduating from MIT in 2015, I joined Facebook. Then in 2018 I moved to Stripe, and last year I started my own company. My name is Alex Rivera.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"  \\n\\\"name\\\": \\\"0x0398a3e620d2afff\\\",\\n\\\"   \\\"   : 9046,\\n   \\\"\\\": 17\\n}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1442,
+      "passed": false
+    },
+    {
+      "case_id": "hard-inference-02",
+      "input": "I've been in the industry since the iPhone was first released. Currently leading infrastructure at Netflix. - David Kim",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\\\\\"name\\\\\\\":\\\\\\\"David Kim\\\\\\\",\\\\\\\"title\\\\\\\":\\\\\\\"Infrastructure Lead\\\\\\\",\\\\\\\"company\\\\\\\":\\\\\\\"Netflix\\\\\\\",\\\\\\\"years\\\\\\\":17}'}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1823,
+      "passed": false
+    },
+    {
+      "case_id": "hard-contradiction-01",
+      "input": "Hi, I'm Jennifer. I work at Google. Actually no wait, I left Google last month. I'm now at Anthropic as a Research Scientist. Been doing ML for 4 years.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\"name:\\\"\\n\\nOOPS The output must be valid JSON. Let's correct.{\\\"name,,\\\"\\\"}\\n\\nI need to output correctly. Let's carefully produce the JSON.\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1280,
+      "passed": false
+    },
+    {
+      "case_id": "hard-contradiction-02",
+      "input": "Name's Tom. 10 years experience... well actually if you count my internships it's more like 12. Senior DevOps at AWS, though my official title is 'Cloud Infrastructure Engineer'.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"   \\\"\\\":\\\"  \\\"}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 737,
+      "passed": false
+    },
+    {
+      "case_id": "hard-noisy-01",
+      "input": "URGENT: Meeting at 3pm! BTW my colleague Sarah (the PM) wanted me to forward her resume: 'Maria Santos, Staff Engineer @ Uber, 7 yrs exp'. Can you review?",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\"name:\\\"  \\\"Maria  ,  \\\" \\\": \\\" \\\", \\\" \\\"} \\\"title:\\\"  \\\"Staff   ,  \\\" \\\": \\\" \\\", \\\" \\\"} \\\"company:\\\"  \\\"Uber  ,  \\\" \\\": \\\" \\\", \\\" \\\"} \\\"years:\\\"  7}\\\"}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1612,
+      "passed": false
+    },
+    {
+      "case_id": "hard-noisy-02",
+      "input": "From: careers@company.com\nSubject: New candidate\n\nPlease review: Kevin O'Brien, iOS Developer, Apple Inc., Started March 2020.\n\n---\nSent from my iPhone",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"\\\"name\\\":\\\"Kevin O'Brien\\\",\\\"title\\\":\\\"iOS Developer\\\",\\\"company\\\":\\\"Apple Inc.\\\",\\\"years\\\":null\\\"}   }\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1109,
+      "passed": false
+    },
+    {
+      "case_id": "hard-implicit-01",
+      "input": "Just got promoted! After being a junior for 2 years and mid-level for 3 more, I'm finally a senior engineer at Spotify. - Chris",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\"name:\\\" : \\\"Chris,\\\" ,\\\"title:\\\" : \\\"Senior\\n\\n}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 868,
+      "passed": false
+    },
+    {
+      "case_id": "hard-implicit-02",
+      "input": "LinkedIn: Raj Patel | Currently between jobs | Last role: VP of Engineering at Coinbase (2019-2023)",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"\\\":\\\"\\\"}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 31688,
+      "passed": false
+    },
+    {
+      "case_id": "hard-math-01",
+      "input": "I'm Yuki. Graduated 2012, took 2 years off for travel, then worked at LINE for 3 years, Mercari for 4 years, and now at SmartNews.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"\\\"name\\\":\\\"Yuki\\\",\\\"title\\\":null\\\",\\\"\\n\\n}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1194,
+      "passed": false
+    },
+    {
+      "case_id": "hard-math-02",
+      "input": "Resume of Dr. Ahmed Hassan: PhD completed 2018 (4 years), Postdoc at Stanford (2 years), now Assistant Professor at Berkeley since 2020.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\"name:\\\"  \\\"Dr,  \\\"\\\"}JSON?}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1988,
+      "passed": false
+    }
+  ],
+  "worst_cases": [
+    {
+      "case_id": "hard-inference-01",
+      "input": "After graduating from MIT in 2015, I joined Facebook. Then in 2018 I moved to Stripe, and last year I started my own company. My name is Alex Rivera.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"  \\n\\\"name\\\": \\\"0x0398a3e620d2afff\\\",\\n\\\"   \\\"   : 9046,\\n   \\\"\\\": 17\\n}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1442,
+      "passed": false
+    },
+    {
+      "case_id": "hard-inference-02",
+      "input": "I've been in the industry since the iPhone was first released. Currently leading infrastructure at Netflix. - David Kim",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\\\\\"name\\\\\\\":\\\\\\\"David Kim\\\\\\\",\\\\\\\"title\\\\\\\":\\\\\\\"Infrastructure Lead\\\\\\\",\\\\\\\"company\\\\\\\":\\\\\\\"Netflix\\\\\\\",\\\\\\\"years\\\\\\\":17}'}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1823,
+      "passed": false
+    },
+    {
+      "case_id": "hard-contradiction-01",
+      "input": "Hi, I'm Jennifer. I work at Google. Actually no wait, I left Google last month. I'm now at Anthropic as a Research Scientist. Been doing ML for 4 years.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\"name:\\\"\\n\\nOOPS The output must be valid JSON. Let's correct.{\\\"name,,\\\"\\\"}\\n\\nI need to output correctly. Let's carefully produce the JSON.\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1280,
+      "passed": false
+    },
+    {
+      "case_id": "hard-contradiction-02",
+      "input": "Name's Tom. 10 years experience... well actually if you count my internships it's more like 12. Senior DevOps at AWS, though my official title is 'Cloud Infrastructure Engineer'.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"   \\\"\\\":\\\"  \\\"}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 737,
+      "passed": false
+    },
+    {
+      "case_id": "hard-noisy-01",
+      "input": "URGENT: Meeting at 3pm! BTW my colleague Sarah (the PM) wanted me to forward her resume: 'Maria Santos, Staff Engineer @ Uber, 7 yrs exp'. Can you review?",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\"name:\\\"  \\\"Maria  ,  \\\" \\\": \\\" \\\", \\\" \\\"} \\\"title:\\\"  \\\"Staff   ,  \\\" \\\": \\\" \\\", \\\" \\\"} \\\"company:\\\"  \\\"Uber  ,  \\\" \\\": \\\" \\\", \\\" \\\"} \\\"years:\\\"  7}\\\"}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1612,
+      "passed": false
+    },
+    {
+      "case_id": "hard-noisy-02",
+      "input": "From: careers@company.com\nSubject: New candidate\n\nPlease review: Kevin O'Brien, iOS Developer, Apple Inc., Started March 2020.\n\n---\nSent from my iPhone",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"\\\"name\\\":\\\"Kevin O'Brien\\\",\\\"title\\\":\\\"iOS Developer\\\",\\\"company\\\":\\\"Apple Inc.\\\",\\\"years\\\":null\\\"}   }\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1109,
+      "passed": false
+    },
+    {
+      "case_id": "hard-implicit-01",
+      "input": "Just got promoted! After being a junior for 2 years and mid-level for 3 more, I'm finally a senior engineer at Spotify. - Chris",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\"name:\\\" : \\\"Chris,\\\" ,\\\"title:\\\" : \\\"Senior\\n\\n}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 868,
+      "passed": false
+    },
+    {
+      "case_id": "hard-implicit-02",
+      "input": "LinkedIn: Raj Patel | Currently between jobs | Last role: VP of Engineering at Coinbase (2019-2023)",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"\\\":\\\"\\\"}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 31688,
+      "passed": false
+    },
+    {
+      "case_id": "hard-math-01",
+      "input": "I'm Yuki. Graduated 2012, took 2 years off for travel, then worked at LINE for 3 years, Mercari for 4 years, and now at SmartNews.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\n{\\\"\\\"name\\\":\\\"Yuki\\\",\\\"title\\\":null\\\",\\\"\\n\\n}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1194,
+      "passed": false
+    },
+    {
+      "case_id": "hard-math-02",
+      "input": "Resume of Dr. Ahmed Hassan: PhD completed 2018 (4 years), Postdoc at Stanford (2 years), now Assistant Professor at Berkeley since 2020.",
+      "output": "{\"error\":\"Invalid JSON from LLM\",\"raw\":\"{\\\"{\\\"name:\\\"  \\\"Dr,  \\\"\\\"}JSON?}\"}",
+      "score": 1,
+      "reason": "Judge output was not valid JSON",
+      "latency_ms": 1988,
+      "passed": false
+    }
+  ],
+  "run_at": "2026-01-29T08:36:48.689Z"
+}

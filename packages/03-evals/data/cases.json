@@ -1,0 +1,114 @@
+{
+	"cases": [
+		{
+			"id": "hard-inference-01",
+			"category": "hard",
+			"input": "After graduating from MIT in 2015, I joined Facebook. Then in 2018 I moved to Stripe, and last year I started my own company. My name is Alex Rivera.",
+			"expected_points": [
+				"name should be 'Alex Rivera'",
+				"company should be the CURRENT one (his own company, NOT Facebook or Stripe)",
+				"years should be calculated as approximately 9 years (2015 to 2024/2025)",
+				"title could be 'Founder' or 'CEO' or similar since he started his own company"
+			]
+		},
+		{
+			"id": "hard-inference-02",
+			"category": "hard",
+			"input": "I've been in the industry since the iPhone was first released. Currently leading infrastructure at Netflix. - David Kim",
+			"expected_points": [
+				"name should be 'David Kim'",
+				"company should be 'Netflix'",
+				"years should be around 17-18 (iPhone released in 2007)",
+				"title should relate to 'infrastructure' or 'lead'"
+			]
+		},
+		{
+			"id": "hard-contradiction-01",
+			"category": "hard",
+			"input": "Hi, I'm Jennifer. I work at Google. Actually no wait, I left Google last month. I'm now at Anthropic as a Research Scientist. Been doing ML for 4 years.",
+			"expected_points": [
+				"name should be 'Jennifer'",
+				"company should be 'Anthropic' (NOT Google - she corrected herself)",
+				"title should be 'Research Scientist'",
+				"years should be 4"
+			]
+		},
+		{
+			"id": "hard-contradiction-02",
+			"category": "hard",
+			"input": "Name's Tom. 10 years experience... well actually if you count my internships it's more like 12. Senior DevOps at AWS, though my official title is 'Cloud Infrastructure Engineer'.",
+			"expected_points": [
+				"name should be 'Tom'",
+				"years should be 10 or 12 (either is acceptable but should pick one)",
+				"company should be 'AWS' or 'Amazon'",
+				"title should be 'Cloud Infrastructure Engineer' (the official title, not the casual one)"
+			]
+		},
+		{
+			"id": "hard-noisy-01",
+			"category": "hard",
+			"input": "URGENT: Meeting at 3pm! BTW my colleague Sarah (the PM) wanted me to forward her resume: 'Maria Santos, Staff Engineer @ Uber, 7 yrs exp'. Can you review?",
+			"expected_points": [
+				"Should extract Maria Santos NOT the sender or Sarah",
+				"name should be 'Maria Santos'",
+				"title should be 'Staff Engineer'",
+				"company should be 'Uber'",
+				"years should be 7"
+			]
+		},
+		{
+			"id": "hard-noisy-02",
+			"category": "hard",
+			"input": "From: careers@company.com\nSubject: New candidate\n\nPlease review: Kevin O'Brien, iOS Developer, Apple Inc., Started March 2020.\n\n---\nSent from my iPhone",
+			"expected_points": [
+				"name should be 'Kevin O'Brien' (note the apostrophe)",
+				"title should be 'iOS Developer'",
+				"company should be 'Apple'",
+				"years should be approximately 4-5 (from March 2020 to now)"
+			]
+		},
+		{
+			"id": "hard-implicit-01",
+			"category": "hard",
+			"input": "Just got promoted! After being a junior for 2 years and mid-level for 3 more, I'm finally a senior engineer at Spotify. - Chris",
+			"expected_points": [
+				"name should be 'Chris'",
+				"title should be 'Senior Engineer' (current title after promotion)",
+				"company should be 'Spotify'",
+				"years should be 5 (2 + 3)"
+			]
+		},
+		{
+			"id": "hard-implicit-02",
+			"category": "hard",
+			"input": "LinkedIn: Raj Patel | Currently between jobs | Last role: VP of Engineering at Coinbase (2019-2023)",
+			"expected_points": [
+				"name should be 'Raj Patel'",
+				"company should be null or 'Unemployed' (currently between jobs)",
+				"title could be 'VP of Engineering' (last role) or null (currently unemployed)",
+				"years should be 4 or more (based on 2019-2023)"
+			]
+		},
+		{
+			"id": "hard-math-01",
+			"category": "hard",
+			"input": "I'm Yuki. Graduated 2012, took 2 years off for travel, then worked at LINE for 3 years, Mercari for 4 years, and now at SmartNews.",
+			"expected_points": [
+				"name should be 'Yuki'",
+				"company should be 'SmartNews' (current)",
+				"years should be 7 (3+4, excluding the gap years for travel)"
+			]
+		},
+		{
+			"id": "hard-math-02",
+			"category": "hard",
+			"input": "Resume of Dr. Ahmed Hassan: PhD completed 2018 (4 years), Postdoc at Stanford (2 years), now Assistant Professor at Berkeley since 2020.",
+			"expected_points": [
+				"name should be 'Ahmed Hassan'",
+				"title should be 'Assistant Professor'",
+				"company should be 'Berkeley' or 'UC Berkeley'",
+				"years should count professional experience (postdoc + professor ~ 6 years, or include PhD ~ 10 years)"
+			]
+		}
+	]
+}
