@@ -131,6 +131,25 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
+  packages/06-multi-agent:
+    dependencies:
+      dotenv:
+        specifier: ^16.0.0
+        version: 16.6.1
+      openai:
+        specifier: ^4.0.0
+        version: 4.104.0(zod@3.25.76)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.30
+      tsx:
+        specifier: ^4.0.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
   packages/llm-service:
     dependencies:
       cors:
