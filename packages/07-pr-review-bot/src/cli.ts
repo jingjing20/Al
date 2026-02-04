@@ -1,8 +1,11 @@
 import 'dotenv/config';
 import { Command } from 'commander';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join } from 'path';
 import { GitHubClient, parsePRUrl, parseDiff } from './github/index.js';
-import { LogicReviewerAgent, ReviewOrchestrator } from './review/index.js';
+import { LogicReviewerAgent, SecurityCheckerAgent, StyleAdvisorAgent, ReviewOrchestrator } from './review/index.js';
 import type { PRReviewResult } from './review/index.js';
+import type { PRIdentifier } from './github/index.js';
 
 const program = new Command();
 
@@ -16,7 +19,9 @@ program
 	.description('Review a GitHub Pull Request')
 	.argument('<pr-url>', 'GitHub PR URL (e.g., https://github.com/owner/repo/pull/123)')
 	.option('--post-comment', 'Post review as GitHub comment')
-	.action(async (prUrl: string, options: { postComment?: boolean }) => {
+	.option('-o, --output <dir>', 'Output directory for review markdown files', './reviews')
+	.option('--no-save', 'Do not save review to file')
+	.action(async (prUrl: string, options: { postComment?: boolean; output: string; save: boolean }) => {
 		const githubToken = process.env.GITHUB_TOKEN;
 		const openaiKey = process.env.OPENAI_API_KEY;
 		const openaiBaseUrl = process.env.OPENAI_BASE_URL;
@@ -44,16 +49,23 @@ program
 			console.log(`📄 Found ${chunks.length} changed files\n`);
 
 			const logicAgent = new LogicReviewerAgent(openaiKey, openaiBaseUrl, openaiModel);
-			const orchestrator = new ReviewOrchestrator([logicAgent]);
+			const securityAgent = new SecurityCheckerAgent(openaiKey, openaiBaseUrl, openaiModel);
+			const styleAgent = new StyleAdvisorAgent(openaiKey, openaiBaseUrl, openaiModel);
+			const orchestrator = new ReviewOrchestrator([logicAgent, securityAgent, styleAgent]);
 
 			const files = chunks.map((chunk) => ({ chunk }));
 			const result = await orchestrator.reviewPR(pr.number, pr.title, pr.body, files);
 
 			printReviewResult(result);
 
+			if (options.save) {
+				const filePath = saveReviewToFile(result, prId, pr.title, prUrl, options.output);
+				console.log(`\n💾 Review saved to: ${filePath}`);
+			}
+
 			if (options.postComment && result.totalComments > 0) {
 				console.log('\n📝 Posting review to GitHub...');
-				const commentBody = formatReviewAsMarkdown(result);
+				const commentBody = formatReviewAsMarkdown(result, pr.title, prUrl);
 				await github.createIssueComment(prId, commentBody);
 				console.log('✅ Review posted successfully!');
 			}
@@ -62,6 +74,28 @@ program
 			process.exit(1);
 		}
 	});
+
+function saveReviewToFile(
+	result: PRReviewResult,
+	prId: PRIdentifier,
+	prTitle: string,
+	prUrl: string,
+	outputDir: string
+): string {
+	if (!existsSync(outputDir)) {
+		mkdirSync(outputDir, { recursive: true });
+	}
+
+	const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+	const filename = `${prId.owner}_${prId.repo}_pr${prId.prNumber}_${timestamp}.md`;
+	const filePath = join(outputDir, filename);
+
+	const content = formatReviewAsMarkdown(result, prTitle, prUrl);
+	writeFileSync(filePath, content, 'utf-8');
+
+	return filePath;
+}
+
 
 function printReviewResult(result: PRReviewResult): void {
 	console.log('━'.repeat(60));
@@ -100,15 +134,20 @@ function printReviewResult(result: PRReviewResult): void {
 	console.log('━'.repeat(60));
 }
 
-function formatReviewAsMarkdown(result: PRReviewResult): string {
+function formatReviewAsMarkdown(result: PRReviewResult, prTitle: string, prUrl: string): string {
 	const lines: string[] = [];
 
+	lines.push(`# PR Review: ${prTitle}\n`);
+	lines.push(`**PR:** [#${result.prNumber}](${prUrl})\n`);
+	lines.push(`**Date:** ${new Date().toISOString()}\n`);
+	lines.push('---\n');
 	lines.push('## 🤖 AI Code Review\n');
 	lines.push(`**Total issues found:** ${result.totalComments}\n`);
 	lines.push(`- 🔴 Errors: ${result.stats.errors}`);
 	lines.push(`- 🟡 Warnings: ${result.stats.warnings}`);
 	lines.push(`- 🔵 Suggestions: ${result.stats.suggestions}`);
 	lines.push(`- ⚪ Nitpicks: ${result.stats.nitpicks}\n`);
+
 
 	if (result.totalComments > 0) {
 		lines.push('### Details\n');
